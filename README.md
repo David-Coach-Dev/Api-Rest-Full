@@ -1,6 +1,6 @@
-<h1 align="center">Crea una Api REST FULL </h1>
+<h1 align="center">Api REST FULL </h1>
 <p align="center">
-Crea una Api REST FULL completa con PHP nativo y base en MySql.
+Creación de una Api REST FULL completa con PHP nativo y base en MySql.
 </p>
 <h1></h1>
 <h2 align="center">Herramientas</h2>
