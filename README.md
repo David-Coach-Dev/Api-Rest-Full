@@ -1,6 +1,6 @@
-<h1 align="center">Api Rest De Deliveries</h1>
+<h1 align="center">Crea una Api REST FULL </h1>
 <p align="center">
-Api rest para la app de Deliveries
+Crea una Api REST FULL completa con PHP nativo y base en MySql.
 </p>
 <h1></h1>
 <h2 align="center">Herramientas</h2>
