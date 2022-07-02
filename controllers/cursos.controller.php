@@ -1,50 +1,239 @@
 <?php
   class ControllerCursos{
     /*******************
-     *? Petición GET
+     ** Petición GET
     ********************/
-    public function index(){
-      $cursos =ModelosCursos::index("cursos");
-      $json = array(
-        "detalle" => $cursos,
-      );
-      echo json_encode($json, true);
+    public function index($pagina){
+      $clientes = ModelosClientes::index("clientes");
+      /****************************
+       ** Validar id y credencial
+      *****************************/
+      foreach ($clientes as $key => $value){
+        if(base64_encode($_SERVER['PHP_AUTH_USER'].":".$_SERVER['PHP_AUTH_PW'])==base64_encode($value["id_cliente"].":".$value["llave_secreta"])){
+          if ($pagina != null) {
+            $cantidad = 10;
+            $desde = ($pagina - 1) * $cantidad;
+            $cursos = ModelosCursos::index("cursos", "clientes", $cantidad, $desde);
+          } else {
+            $cursos = ModelosCursos::index("cursos", "clientes", null, null);
+          }
+          $json = array(
+            "status" => 200,
+            "detalle" => $cursos,
+          );
+          echo json_encode($json, true);
+          return;
+        }
+      }
     }
     /*******************
-     *? Petición POST
+     ** Petición POST
     ********************/
-    public function create(){
-      $json = array(
-        "detalle" => "Te encuentras en un vista de crear cursos..."
-      );
-      echo json_encode($json, true);
+    public function create($datos){
+      $clientes = ModelosClientes::index("clientes");
+      /****************************
+       *? Validar id y credencial
+      *****************************/
+      foreach ($clientes as $key => $valueCliente) {
+        if (base64_encode($_SERVER['PHP_AUTH_USER'].":".$_SERVER['PHP_AUTH_PW']) == base64_encode($valueCliente["id_cliente"].":".$valueCliente["llave_secreta"])){
+          /****************************
+           *? Validar id y credencial
+          *****************************/
+          foreach ($datos as $key => $valueDatos) {
+            if (isset($valueDatos) && !preg_match('/^[(\\)\\=\\&\\$\\;\\-\\_\\*\\"\\<\\>\\?\\¿\\!\\¡\\:\\,\\.\\0-9a-zA-ZñÑáéíóúÁÉÍÓÚ ]+$/', $valueDatos)) {
+              $json = array(
+                "status" => 404,
+                "detalle" => "Error en el campo " . $key
+              );
+              echo json_encode($json, true);
+              return;
+            }
+          }
+          /***************************************************************
+           *? Validar que el titulo o la descripcion no estén repetidos
+          *****************************************************************/
+          $cursos = ModelosCursos::index("cursos", "clientes", null, null);
+          foreach ($cursos as $key => $value) {
+            if ($value->titulo == $datos["titulo"]) {
+              $json = array(
+                "status" => 404,
+                "detalle" => "El título ya existe en la base de datos"
+              );
+              echo json_encode($json, true);
+              return;
+            }
+            if ($value->descripcion == $datos["descripcion"]) {
+              $json = array(
+                "status" => 404,
+                "detalle" => "La descripción ya existe en la base de datos"
+              );
+              echo json_encode($json, true);
+              return;
+            }
+          }
+          /*****************************
+          *? 	Llevar datos al modelo
+          ******************************/
+          $datos = array(
+            "titulo" => $datos["titulo"],
+            "descripcion" => $datos["descripcion"],
+            "instructor" => $datos["instructor"],
+            "imagen" => $datos["imagen"],
+            "precio" => $datos["precio"],
+            "id_creador" => $valueCliente["id"],
+            "created_at" => date('Y-m-d h:i:s'),
+            "updated_at" => date('Y-m-d h:i:s')
+          );
+          $create = ModelosCursos::create("cursos", $datos);
+          /*************************
+					*? Respuesta del modelo
+					**************************/
+          if ($create == "ok") {
+            $json = array(
+              "status" => 200,
+              "detalle" => "Registro exitoso, su curso ha sido guardado"
+            );
+            echo json_encode($json, true);
+            return;
+          }
+        }
+      }
     }
     /**********************
-     *? Petición GET x ID
+     ** Petición GET x ID
     ***********************/
     public function show($id){
-      $json = array(
-        "detalle" => "Este es el curso con el id ".$id." ..."
-      );
-      echo json_encode($json, true);
+      /*****************************************
+      ** Validar credenciales del cliente
+      ******************************************/
+      $clientes = ModelosClientes::index("clientes");
+      if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
+        foreach ($clientes as $key => $valueCliente) {
+          if (
+            base64_encode($_SERVER['PHP_AUTH_USER'].":".$_SERVER['PHP_AUTH_PW']) == base64_encode($valueCliente["id_cliente"].":".$valueCliente["llave_secreta"])
+          ){
+            /*******************************
+             ** Mostrar todos los cursos
+            ********************************/
+            $curso = ModelosCursos::show("cursos", "clientes", $id);
+            if (!empty($curso)){
+              $json = array(
+                "status" => 200,
+                "detalle" => $curso
+              );
+              echo json_encode($json, true);
+              return;
+            } else {
+              $json = array(
+                "status" => 200,
+                "total_registros" => 0,
+                "detalles" => "No hay ningún curso registrado"
+              );
+              echo json_encode($json, true);
+              return;
+            }
+          }
+        }
+      }
     }
     /**********************
-     *? Petición PUT x ID
+     ** Petición PUT x ID
     ***********************/
-      public function update($id){
-      $json = array(
-        "detalle" => "curso con el id ".$id." fue actualizado..."
-      );
-      echo json_encode($json, true);
+    public function update($id,$datos){
+      /***************************************
+      ** Validar credenciales del cliente
+      ****************************************/
+      $clientes = ModelosClientes::index("clientes");
+      if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
+        foreach ($clientes as $key => $valueCliente) {
+          if ("Basic".base64_encode($_SERVER['PHP_AUTH_USER'].":".$_SERVER['PHP_AUTH_PW']) == "Basic".base64_encode($valueCliente["id_cliente"].":".$valueCliente["llave_secreta"])){
+            /**************************
+            *?	Validar datos
+            **************************/
+            foreach ($datos as $key => $valueDatos) {
+              if (isset($valueDatos) && !preg_match('/^[(\\)\\=\\&\\$\\;\\-\\_\\*\\"\\<\\>\\?\\¿\\!\\¡\\:\\,\\.\\0-9a-zA-ZñÑáéíóúÁÉÍÓÚ ]+$/', $valueDatos)) {
+                $json = array(
+                  "status" => 404,
+                  "detalle" => "Error en el campo " . $key
+                );
+                echo json_encode($json, true);
+                return;
+              }
+            }
+            /***********************
+            *? Validar id creador
+            ************************/
+            $curso = ModelosCursos::show("cursos", "clientes", $id);
+            foreach ($curso as $key => $valueCurso) {
+              if ($valueCurso->id_creador == $valueCliente["id"]){
+                /****************************
+                 *?	Llevar datos al modelo
+                *****************************/
+                $datos = array(
+                  "id" => $id,
+                  "titulo" => $datos["titulo"],
+                  "descripcion" => $datos["descripcion"],
+                  "instructor" => $datos["instructor"],
+                  "imagen" => $datos["imagen"],
+                  "precio" => $datos["precio"],
+                  "updated_at" => date('Y-m-d h:i:s')
+                );
+                $update = ModelosCursos::update("cursos", $datos);
+                if ($update == "ok") {
+                  $json = array(
+                    "status" => 200,
+                    "detalle" => "Registro exitoso, su curso ha sido actualizado"
+                  );
+                  echo json_encode($json, true);
+                  return;
+                } else {
+                  $json = array(
+                    "status" => 404,
+                    "detalle" => "No está autorizado para modificar este curso"
+                  );
+                  echo json_encode($json, true);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
     }
     /*************************
-     *? Petición DELETE x ID
+     ** Petición DELETE x ID
     **************************/
-      public function delete($id){
-      $json = array(
-        "detalle" => "curso con el id ".$id." fue borrado..."
-      );
-      echo json_encode($json, true);
+    public function delete($id){
+      /************************************
+      *? Validar credenciales del cliente
+      *************************************/
+      $clientes = ModelosClientes::index("clientes");
+      if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
+        foreach ($clientes as $key => $valueCliente){
+          if ("Basic ".base64_encode($_SERVER['PHP_AUTH_USER'].":".$_SERVER['PHP_AUTH_PW']) == "Basic ".base64_encode($valueCliente["id_cliente"].":".$valueCliente["llave_secreta"])){
+            /**********************
+            *? Validar id creador
+            ***********************/
+            $curso = ModelosCursos::show("cursos", "clientes", $id);
+            foreach ($curso as $key => $valueCurso) {
+              if ($valueCurso->id_creador == $valueCliente["id"]) {
+                /***************************
+                *? Llevar datos al modelo
+                ****************************/
+                $delete = ModelosCursos::delete("cursos", $id);
+                if ($delete == "ok") {
+                  $json = array(
+                    "status" => 200,
+                    "detalle" => "se ha borrado el curso"
+                  );
+                  echo json_encode($json, true);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 ?>

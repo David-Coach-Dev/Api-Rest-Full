@@ -2,7 +2,7 @@
   require_once "connection.php";
   class ModelosClientes{
     /*******************
-    *? Petición GET
+    ** Petición GET
     ********************/
     static public function index($tabla){
       $stmt=Connection::connect()->prepare("SELECT * FROM $tabla");
@@ -12,7 +12,7 @@
       $stmt=null;
     }
     /*******************
-    *? Petición POST
+    ** Petición POST
     ********************/
     static public function create($tabla, $datos){
       $stmt = Connection::connect()->prepare("INSERT INTO $tabla(nombre, apellido, email, id_cliente, llave_secreta, created_at, updated_at) VALUES (:nombre, :apellido, :email, :id_cliente, :llave_secreta, :created_at, :updated_at)");
